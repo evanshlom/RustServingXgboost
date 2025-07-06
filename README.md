@@ -31,7 +31,7 @@ This will:
 
 ```bash
 # 1. Setup and train the model
-just build-train build-serve
+just build-train build-serve # 1-3min and 3-7min respectively to build the 2 images the first time
 just train
 
 # 2. Start the inference server

@@ -2,8 +2,8 @@ import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_absolute_error
-from skl2onnx import convert_sklearn
-from skl2onnx.common.data_types import FloatTensorType
+import onnxmltools
+from onnxmltools.convert.common.data_types import FloatTensorType
 from data import generate_eth_gas_data
 
 # Generate data
@@ -36,9 +36,9 @@ print(f"Model Performance:")
 print(f"R² Score: {r2:.4f}")
 print(f"MAE: {mae:.2f} gwei")
 
-# Convert to ONNX
+# Convert to ONNX using onnxmltools
 initial_type = [('float_input', FloatTensorType([None, 7]))]
-onnx_model = convert_sklearn(model, initial_types=initial_type, target_opset=12)
+onnx_model = onnxmltools.convert_xgboost(model, initial_types=initial_type, target_opset=12)
 
 # Save ONNX model
 with open('/model/model.onnx', 'wb') as f:

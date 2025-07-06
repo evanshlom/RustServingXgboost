@@ -5,7 +5,7 @@ use axum::{
     routing::post,
     Router,
 };
-use ort::{GraphOptimizationLevel, Session};
+use ort::session::{builder::GraphOptimizationLevel, Session};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -59,26 +59,30 @@ async fn predict(
     Json(payload): Json<GasPredictRequest>,
 ) -> Result<Json<GasPredictResponse>, StatusCode> {
     let features = vec![
-        payload.hour as f32,
-        payload.day_of_week as f32,
-        payload.prev_gas_1,
-        payload.prev_gas_2,
-        payload.prev_gas_3,
-        payload.high_bids_count as f32,
-        payload.avg_bid_price,
+        vec![
+            payload.hour as f32,
+            payload.day_of_week as f32,
+            payload.prev_gas_1,
+            payload.prev_gas_2,
+            payload.prev_gas_3,
+            payload.high_bids_count as f32,
+            payload.avg_bid_price,
+        ]
     ];
-
-    let input_array = ndarray::arr2(&[features]);
     
     let outputs = state.model
-        .run(ort::inputs!["float_input" => input_array.view()]?)
+        .run(ort::inputs!{"float_input" => features}?)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let predictions = outputs[0]
+    let output = &outputs[0];
+    let predictions = output
         .try_extract_tensor::<f32>()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .view()
+        .as_slice()
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(GasPredictResponse {
-        predicted_gas_price: predictions[[0]],
+        predicted_gas_price: predictions[0],
     }))
 }
